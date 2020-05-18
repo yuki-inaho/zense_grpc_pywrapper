@@ -113,7 +113,6 @@ cdef class PicoZenseGRPCServerImpl:
             if self.thisptr.is_ir():
                 # RGBDIR case
                 rgbImg = self.thisptr.getRGBImage()
-                print(rgbImg.cols)
                 assert rgbImg.cols > 0
                 self.rgbImg_npy = Mat2np(rgbImg)
                 irImg = self.thisptr.getIRImage()
@@ -156,7 +155,6 @@ cdef class PicoZenseGRPCServerImpl:
 
     @property
     def is_wdr(self):
-        assert self.rgbImg is not None
         return self.thisptr.is_wdr()
 
     @property

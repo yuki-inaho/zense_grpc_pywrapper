@@ -6,6 +6,8 @@ cfg/camera.toml
 
 # protobuf
 build/
+zense_pb2.py
+zense_pb2_grpc.py
 protos/zense.grpc.pb.cc
 protos/zense.grpc.pb.h
 protos/zense.pb.cc
