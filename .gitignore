@@ -1,0 +1,11 @@
+# vscode
+.vscode/settings.json
+
+# protobuf
+build/
+protos/zense.grpc.pb.cc
+protos/zense.grpc.pb.h
+protos/zense.pb.cc
+protos/zense.pb.h
+scripts/zense_pb2.py
+scripts/zense_pb2_grpc.py

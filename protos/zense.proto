@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package zense;
+
+message Image {
+  uint32 width = 1;
+  uint32 height = 2;
+  uint32 channel = 3;
+  uint32 image_size = 4;
+  uint64 timestamp = 5;
+  int32 depth_range = 6;
+  bytes data = 7;
+}
+
+service ZenseService{
+  rpc SendRGBDImage (ImageRequest) returns (ImageRGBDReply) {}
+  rpc SendRGBDIRImage (ImageRequest) returns (ImageRGBDIRReply) {}      
+}
+
+message ImageRequest{
+}
+
+message ImageRGBDReply{
+  Image image_rgb = 1;
+  Image image_depth = 2;
+}
+
+message ImageRGBDIRReply{
+  Image image_rgb = 1;
+  Image image_ir = 2;
+  Image image_depth = 3;
+}
