@@ -1,7 +1,0 @@
-toml
-opencv-python
-cvui
-numpy
-cython
-click
-pkgconfig
