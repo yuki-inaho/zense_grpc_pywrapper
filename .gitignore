@@ -9,3 +9,5 @@ protos/zense.pb.cc
 protos/zense.pb.h
 scripts/zense_pb2.py
 scripts/zense_pb2_grpc.py
+zense_grpc_pywrapper.cpp
+zense_grpc_pywrapper.cpython-36m-x86_64-linux-gnu.so

@@ -8,4 +8,5 @@ matplotlib==2.2.5
 pybind11==2.4.3
 open3d==0.9.0.0
 scipy==1.2.2
+pathlib==1.0.1
 pysimplegui==4.19.0
