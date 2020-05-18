@@ -1,6 +1,5 @@
 #pragma once
 #include <chrono>
-#include <mutex>
 #include <unordered_map>
 
 #include "common.hpp"
@@ -9,10 +8,13 @@
 #include "pico_zense_undistorter.hpp"
 
 #define INIT_SKIP_COUNTER -200
-#define MAX_SKIP_COUNTER 30
+#define MAX_SKIP_COUNTER 60
 #define MAX_HEARTBEAT_COUNTER 10
 
 namespace zense {
+
+enum ZenseMode { RGBD, RGBDIR, DepthIR, WDR };
+
 class PicoZenseServerImpl {
  public:
   ~PicoZenseServerImpl() { close(); }
@@ -24,8 +26,22 @@ class PicoZenseServerImpl {
     const double fract_err = 1e-5;
     return (std::fabs(val - ref) <= fract_err * std::fabs(ref));
   };
-  void close() { manager_.closeDevice(device_index_); };
+  void close();
   bool update();
+
+  std::string getSerialNumber() { return serial_no_; };
+  cv::Mat getRGBImage() { return rgb_image; };
+  cv::Mat getIRImage() { return ir_image; };
+  cv::Mat getDepthImage() { return depth_image_range1; };
+  std::vector<cv::Mat> getWDRDepthImage() {
+    return std::vector<cv::Mat>{depth_image_range1, depth_image_range2};
+  };
+
+  bool is_rgb () { return isRGB; };
+  bool is_ir () { return isIR; };
+  bool is_wdr () { return isWDR; };
+
+  // cv::Mat getWDRDepthImage();
 
  private:
   // PicoZense custom API
@@ -41,7 +57,6 @@ class PicoZenseServerImpl {
   int32_t device_index_;
   std::string sensor_id_;
   std::string serial_no_;
-
   bool isRGB, isWDR, isIR;
 
   cv::Mat rgb_image;
@@ -52,6 +67,10 @@ class PicoZenseServerImpl {
   bool undistortion_flag;
   PicoZenseUndistorter undistorter;
   CameraParameter camera_param;
+
+  // For template speciallization, defined actual process is written in .cpp
+  template <ZenseMode T>
+  bool _update(){};
 };
 
 }  // namespace zense

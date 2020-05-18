@@ -1,6 +1,9 @@
 # vscode
 .vscode/settings.json
 
+# camera param
+cfg/camera.toml
+
 # protobuf
 build/
 protos/zense.grpc.pb.cc

@@ -11,8 +11,8 @@ import toml
 import numpy as np
 cimport numpy as np
 
-#Modules for cv::Mat->ndarray
-#Refered from https://github.com/GothicAi/cython-global-matting
+# Modules for cv::Mat->ndarray
+# Refered from https://github.com/GothicAi/cython-global-matting
 cdef extern from "opencv2/opencv.hpp":
     cdef int  CV_WINDOW_AUTOSIZE
     cdef int CV_8UC3
@@ -41,16 +41,16 @@ cdef extern from "Python.h":
         PyBUF_FULL_RO
         PyBUF_CONTIG
 
-cdef object Mat2np(Mat m, bool is_UC8):
+cdef object Mat2np(Mat m, bool is_UC16 = False):
     # Create buffer to transfer data from m.data
     cdef Py_buffer buf_info
     # Define the size / len of data
     cdef size_t len = m.rows*m.cols*m.elemSize()
 
     # Fill buffer
-    PyBuffer_FillInfo( & buf_info, NULL, m.data, len, False, PyBUF_FULL_RO)
+    PyBuffer_FillInfo(& buf_info, NULL, m.data, len, False, PyBUF_FULL_RO)
     # Get Pyobject from buffer data
-    Pydata  = PyMemoryView_FromBuffer( & buf_info)
+    Pydata  = PyMemoryView_FromBuffer(& buf_info)
 
     # Create ndarray with data
     # the dimension of the output array is 2 if the image is grayscale
@@ -59,33 +59,122 @@ cdef object Mat2np(Mat m, bool is_UC8):
     else:
         shape_array = (m.rows, m.cols)
 
-    if is_UC8:
+    if not is_UC16:
         pyary = np.asarray(Pydata, dtype=np.uint8).reshape(shape_array)
     else:
-        pyary = np.frombuffer(Pydata.tobytes(), dtype=np.uint16).reshape(shape_array)
+        pyary = np.frombuffer(
+            Pydata.tobytes(), dtype=np.uint16).reshape(shape_array)
     return pyary
 
 
 cdef extern from "include/pico_zense_server_impl.hpp" namespace "zense":
     cdef cppclass PicoZenseServerImpl:
         PicoZenseServerImpl() except +
-        void setup(string cfgParamPath, string camKey, int32_t device_index__);
-        bool update();
+        void setup(string cfgParamPath, string camKey, int32_t device_index_)
+        bool update()
+        bool is_rgb()
+        bool is_ir()
+        bool is_wdr()
+        string getSerialNumber()
+        vector[double] getCameraParameter()
+        Mat getRGBImage()
+        Mat getIRImage()
+        Mat getDepthImage()
+        vector[Mat] getWDRDepthImage()
 
-cdef class PicoZenseGRPCServer:
+
+cdef class PicoZenseGRPCServerImpl:
     cdef PicoZenseServerImpl * thisptr
     cdef object rgbImg_npy
     cdef object irImg_npy
-    cdef object depthImg_npy
+    cdef vector[Mat] depthWDRImg
+    cdef object depthImgRange1_npy
+    cdef object depthImgRange2_npy
 
-    def __cinit__(self, string cfgParamPath, string camKey, int32_t device_index__):
+    def __cinit__(self, string cfgParamPath, string camKey, int32_t device_index_):
         self.thisptr = new PicoZenseServerImpl()
-        self.thisptr.setup(cfgParamPath, camKey, device_index__)
+        self.thisptr.setup(cfgParamPath, camKey, device_index_)
 
     def __dealloc__(self):
         del self.thisptr
 
     def update(self):
-        cdef bool status
+        cdef Mat rgbImg
+        cdef Mat irImg
+        cdef Mat depthImg
+
+        # ToDo: avoid infinite loop
+        # ToDo: null data avoidance        
         status = self.thisptr.update()
+        if status:
+         return False
+
+        if self.thisptr.is_rgb():
+            if self.thisptr.is_ir():
+                # RGBDIR case
+                rgbImg = self.thisptr.getRGBImage()
+                print(rgbImg.cols)
+                assert rgbImg.cols > 0
+                self.rgbImg_npy = Mat2np(rgbImg)
+                irImg = self.thisptr.getIRImage()
+                self.irImg_npy = Mat2np(irImg, is_UC16=True)
+                depthImg = self.thisptr.getDepthImage()
+                self.depthImgRange1_npy = Mat2np(depthImg, is_UC16=True)
+
+            else:
+                # RGBD case
+                rgbImg = self.thisptr.getRGBImage()
+                self.rgbImg_npy = Mat2np(rgbImg)
+                depthImg = self.thisptr.getDepthImage()
+                self.depthImgRange1_npy = Mat2np(depthImg, is_UC16=True)
+
+        else:
+            if self.thisptr.is_wdr():
+                # WDR case
+                depthWDRImg = self.thisptr.getWDRDepthImage()
+                self.depthImgRange1_npy = Mat2np(
+                    depthWDRImg[0], is_UC16=True)
+                self.depthImgRange2_npy = Mat2np(
+                    depthWDRImg[1], is_UC16=True)
+            else:
+                # DepthIR case
+                irImg = self.thisptr.getIRImage()
+                self.irImg_npy = Mat2np(irImg)
+                depthImg = self.thisptr.getDepthImage()
+                self.depthImgRange1_npy = Mat2np(depthImg, is_UC16=True)
+
+        #ToDo: check status carefully
         return status
+
+    @property
+    def is_rgb(self):
+        return self.thisptr.is_rgb()
+
+    @property
+    def is_ir(self):
+        return self.thisptr.is_ir()
+
+    @property
+    def is_wdr(self):
+        assert self.rgbImg is not None
+        return self.thisptr.is_wdr()
+
+    @property
+    def rgb_image(self):
+        assert self.rgbImg_npy is not None
+        return self.rgbImg_npy
+
+    @property
+    def ir_image(self):
+        assert self.irImg_npy is not None
+        return self.irImg_npy
+
+    @property
+    def depth_image_range1(self):
+        assert self.depthImgRange1_npy is not None
+        return self.depthImgRange1_npy
+
+    @property
+    def depth_image_range2(self):
+        assert self.depthImgRange2_npy is not None
+        return self.depthImgRange2_npy
