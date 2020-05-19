@@ -2,8 +2,6 @@
 
 namespace zense {
 
-
-
 void PicoZenseServerImpl::setup(std::string cfgParamPath, std::string camKey,
                                 int32_t device_index__) {
   device_index_ = device_index__;
@@ -91,20 +89,15 @@ void PicoZenseServerImpl::setup(std::string cfgParamPath, std::string camKey,
   std::cout << "Camera setup is finished!" << std::endl;
 }
 
-void PicoZenseServerImpl::close() {
-  manager_.closeDevice(device_index_);
-}
+void PicoZenseServerImpl::close() { manager_.closeDevice(device_index_); }
 
-int PicoZenseServerImpl::getDepthRange(){
-  return depth_range1;
-}
+int PicoZenseServerImpl::getDepthRange() { return depth_range1; }
 
-std::vector<int> PicoZenseServerImpl::getDepthRangeWDR(){
+std::vector<int> PicoZenseServerImpl::getDepthRangeWDR() {
   return std::vector<int>{(int)depth_range1, (int)depth_range2};
 }
 
-template <>
-bool PicoZenseServerImpl::_update<ZenseMode::RGBD>() {
+bool PicoZenseServerImpl::monitoring_skip() {
   bool is_success = true;
   skip_counter_[range1]++;
   skip_counter_[range2]++;
@@ -121,6 +114,17 @@ bool PicoZenseServerImpl::_update<ZenseMode::RGBD>() {
     return false;
   }
 
+  //initialize flag for WDR update monitoring
+  flag_wdr_range_updated_[depth_range1] = false;
+  flag_wdr_range_updated_[depth_range2] = false;
+
+  return is_success;
+}
+
+template <>
+bool PicoZenseServerImpl::_update<ZenseMode::RGBD>() {
+  bool is_success = true;
+  is_success &= monitoring_skip();
   rgb_image = manager_.getRgbImage(device_index_).clone();
   depth_range1 = (DepthRange)manager_.getDepthRange(device_index_);
   depth_image_range1 = manager_.getDepthImage(device_index_).clone();
@@ -136,43 +140,53 @@ bool PicoZenseServerImpl::_update<ZenseMode::RGBD>() {
 template <>
 bool PicoZenseServerImpl::_update<ZenseMode::RGBDIR>() {
   bool is_success = true;
-  skip_counter_[range1]++;
-  skip_counter_[range2]++;
-  if (skip_counter_[range1] > MAX_SKIP_COUNTER ||
-      skip_counter_[range2] > MAX_SKIP_COUNTER) {
-    close();
-    std::cerr << "Device not responding. Exiting..." << std::endl;
-    std::exit(EXIT_FAILURE);
-  }
-
-  if (!manager_.updateDevice(device_index_)) {
-    std::cout << "Device not updated. Skipping..." << std::endl;
-    usleep(33333);
-    return false;
-  }
-
+  is_success &= monitoring_skip();
   rgb_image = manager_.getRgbImage(device_index_).clone();
   ir_image = manager_.getIRImage(device_index_).clone();
-  depth_range1 = (DepthRange)manager_.getDepthRange(device_index_);
-  depth_image_range1 = manager_.getDepthImage(device_index_).clone();
-
-  if (is_success && (rgb_image.cols == 0 || ir_image.cols == 0 ||
-                     depth_image_range1.cols == 0))
-    is_success = false;
-
+  depth_range1 = (DepthRange)manager_.getDepthRange(device_index_);flag_wdr_range_updated_[depth_range1];
+  if (is_success && (ir_image.cols == 0 || depth_image_range1.cols == 0)) 
+        is_success = false;
   skip_counter_[depth_range1] = 0;
   flag_wdr_range_updated_[depth_range1] = true;
   return is_success;
 }
 
 template <>
-bool PicoZenseServerImpl::_update<ZenseMode::DepthIR>() {
-  // not implemented yet
-}
-
-template <>
 bool PicoZenseServerImpl::_update<ZenseMode::WDR>() {
-  // not implemented yet
+  bool is_success = true;
+  is_success &= monitoring_skip();
+  DepthRange _depth_range = (DepthRange)manager_.getDepthRange(device_index_);  
+  cv::Mat _depth_image = manager_.getDepthImage(device_index_).clone();
+  if(_depth_range == range1){
+    depth_range1 = _depth_range;
+    depth_image_range1 = _depth_image;
+  }else if(_depth_range == range2){
+    depth_range2 = _depth_range;
+    depth_image_range2 = _depth_image;    
+  }else{
+    throw std::runtime_error("Unconfigurated depth informaiton aquired");
+  }
+  
+  if (is_success && (_depth_image.cols == 0)){
+    is_success &= false;
+  }else{
+    skip_counter_[_depth_range] = 0;
+  }
+  
+  if(_depth_image.cols > 0){
+    flag_wdr_range_updated_[_depth_range] = true;
+  }
+
+  // if only double range depth image are updated, return true
+  bool is_success_wdr;
+  is_success_wdr = flag_wdr_range_updated_[depth_range1] && flag_wdr_range_updated_[depth_range2];
+  if(is_success_wdr){
+    //if double depth info is correctly updated, reflesh
+    flag_wdr_range_updated_[depth_range1] = false;
+    flag_wdr_range_updated_[depth_range2] = false;
+  }
+  
+  return is_success_wdr;
 }
 
 bool PicoZenseServerImpl::update() {

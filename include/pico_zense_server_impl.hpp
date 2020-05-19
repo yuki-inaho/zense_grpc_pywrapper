@@ -35,6 +35,7 @@ class PicoZenseServerImpl {
   void close();
   bool update();
 
+
   std::string getSerialNumber() { return serial_no_; };
   cv::Mat getRGBImage() { return rgb_image; };
   cv::Mat getIRImage() { return ir_image; };
@@ -81,6 +82,7 @@ class PicoZenseServerImpl {
   CameraParameter camera_param;
 
   // For template speciallization, defined actual process is written in .cpp
+  bool monitoring_skip();
   template <ZenseMode T>
   bool _update(){ throw std::runtime_error("Undefined Type : _update");};
 };

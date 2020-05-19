@@ -7,7 +7,7 @@ import zense_pb2 as Image
 import zense_pb2
 import grpc
 from zense_grpc_pywrapper import PicoZenseGRPCServerImpl
-from utils import ndarray_to_bytes
+from utils.convert_pb_ndarray import ndarray_to_bytes
 from concurrent import futures
 
 _ONE_DAY_IN_SECONDS = 60 * 60 * 24
