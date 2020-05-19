@@ -16,3 +16,9 @@ scripts/zense_pb2.py
 scripts/zense_pb2_grpc.py
 zense_grpc_pywrapper.cpp
 zense_grpc_pywrapper.cpython-*-x86_64-linux-gnu.so
+
+#cython
+scripts/__pycache__/zense_pb2.cpython-36.pyc
+scripts/__pycache__/zense_pb2_grpc.cpython-36.pyc
+scripts/utils/__pycache__/__init__.cpython-36.pyc
+scripts/utils/__pycache__/convert_pb_ndarray.cpython-36.pyc
