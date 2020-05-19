@@ -2,6 +2,8 @@
 
 namespace zense {
 
+
+
 void PicoZenseServerImpl::setup(std::string cfgParamPath, std::string camKey,
                                 int32_t device_index__) {
   device_index_ = device_index__;
@@ -93,6 +95,14 @@ void PicoZenseServerImpl::close() {
   manager_.closeDevice(device_index_);
 }
 
+int PicoZenseServerImpl::getDepthRange(){
+  return depth_range1;
+}
+
+std::vector<int> PicoZenseServerImpl::getDepthRangeWDR(){
+  return std::vector<int>{(int)depth_range1, (int)depth_range2};
+}
+
 template <>
 bool PicoZenseServerImpl::_update<ZenseMode::RGBD>() {
   bool is_success = true;
@@ -112,14 +122,14 @@ bool PicoZenseServerImpl::_update<ZenseMode::RGBD>() {
   }
 
   rgb_image = manager_.getRgbImage(device_index_).clone();
-  int32_t depth_range = manager_.getDepthRange(device_index_);
+  depth_range1 = (DepthRange)manager_.getDepthRange(device_index_);
   depth_image_range1 = manager_.getDepthImage(device_index_).clone();
 
   if (is_success && (rgb_image.cols == 0 || depth_image_range1.cols == 0))
     is_success = false;
 
-  skip_counter_[depth_range] = 0;
-  flag_wdr_range_updated_[depth_range] = true;
+  skip_counter_[depth_range1] = 0;
+  flag_wdr_range_updated_[depth_range1] = true;
   return is_success;
 }
 
@@ -143,15 +153,15 @@ bool PicoZenseServerImpl::_update<ZenseMode::RGBDIR>() {
 
   rgb_image = manager_.getRgbImage(device_index_).clone();
   ir_image = manager_.getIRImage(device_index_).clone();
-  int32_t depth_range = manager_.getDepthRange(device_index_);
+  depth_range1 = (DepthRange)manager_.getDepthRange(device_index_);
   depth_image_range1 = manager_.getDepthImage(device_index_).clone();
 
   if (is_success && (rgb_image.cols == 0 || ir_image.cols == 0 ||
                      depth_image_range1.cols == 0))
     is_success = false;
 
-  skip_counter_[depth_range] = 0;
-  flag_wdr_range_updated_[depth_range] = true;
+  skip_counter_[depth_range1] = 0;
+  flag_wdr_range_updated_[depth_range1] = true;
   return is_success;
 }
 

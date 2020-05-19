@@ -1,3 +1,7 @@
+# 注意点
+- submoduleとして追加されているpico_zense_cython_wrapperは設定ファイル(camera.toml)生成のために
+用いており、gRPC上の処理には全く使用していません
+
 # コードの手順(on Docker)
 1. zense_grpc_module直下で"make build"を実行し、dockerコンテナを作成する
 2. make runでコンテナ内部に入り、setup.shを実行する(コードのビルドやgRPC依存ファイルの生成を行う)

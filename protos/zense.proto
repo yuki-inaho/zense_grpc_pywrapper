@@ -6,10 +6,9 @@ message Image {
   uint32 width = 1;
   uint32 height = 2;
   uint32 channel = 3;
-  uint32 image_size = 4;
-  uint64 timestamp = 5;
-  int32 depth_range = 6;
-  bytes data = 7;
+  uint64 timestamp = 4;
+  int32 depth_range = 5;
+  bytes data = 6;
 }
 
 service ZenseService{

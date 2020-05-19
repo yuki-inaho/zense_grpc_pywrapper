@@ -11,9 +11,15 @@
 #define MAX_SKIP_COUNTER 60
 #define MAX_HEARTBEAT_COUNTER 10
 
+
 namespace zense {
 
-enum ZenseMode { RGBD, RGBDIR, DepthIR, WDR };
+enum DepthRange { Near, Mid, Far}; 
+
+typedef std::vector<DepthRange> WDRDepthRange;
+
+//not_WDR is just convenience notification for getDepthRange()
+enum ZenseMode { RGBD, RGBDIR, DepthIR, WDR}; 
 
 class PicoZenseServerImpl {
  public:
@@ -35,13 +41,17 @@ class PicoZenseServerImpl {
   cv::Mat getDepthImage() { return depth_image_range1; };
   std::vector<cv::Mat> getWDRDepthImage() {
     return std::vector<cv::Mat>{depth_image_range1, depth_image_range2};
-  };
+  }
+
+  //template<typename range_output_type> 
+  //range_output_type getDepthRange(){ throw std::runtime_error("Undefined Type : getDepthRange()");}; // template specification later : DepthRange, WDRDepthRange
+
+  int getDepthRange();
+  std::vector<int> getDepthRangeWDR();
 
   bool is_rgb () { return isRGB; };
   bool is_ir () { return isIR; };
   bool is_wdr () { return isWDR; };
-
-  // cv::Mat getWDRDepthImage();
 
  private:
   // PicoZense custom API
@@ -63,6 +73,8 @@ class PicoZenseServerImpl {
   cv::Mat ir_image;
   cv::Mat depth_image_range1;
   cv::Mat depth_image_range2;
+  DepthRange depth_range1;
+  DepthRange depth_range2;
 
   bool undistortion_flag;
   PicoZenseUndistorter undistorter;
@@ -70,7 +82,7 @@ class PicoZenseServerImpl {
 
   // For template speciallization, defined actual process is written in .cpp
   template <ZenseMode T>
-  bool _update(){};
+  bool _update(){ throw std::runtime_error("Undefined Type : _update");};
 };
 
 }  // namespace zense

@@ -8,8 +8,16 @@ from libcpp.string cimport string
 from libcpp cimport bool
 import toml
 
+import base64
 import numpy as np
 cimport numpy as np
+
+ctypedef enum DepthRange:
+    Near,
+    Mid,
+    Far
+
+ctypedef vector[DepthRange] WDRDepthRange
 
 # Modules for cv::Mat->ndarray
 # Refered from https://github.com/GothicAi/cython-global-matting
@@ -41,7 +49,7 @@ cdef extern from "Python.h":
         PyBUF_FULL_RO
         PyBUF_CONTIG
 
-cdef object Mat2np(Mat m, bool is_UC16 = False):
+cdef object Mat2np(Mat m, bool is_UC16=False):
     # Create buffer to transfer data from m.data
     cdef Py_buffer buf_info
     # Define the size / len of data
@@ -60,10 +68,9 @@ cdef object Mat2np(Mat m, bool is_UC16 = False):
         shape_array = (m.rows, m.cols)
 
     if not is_UC16:
-        pyary = np.asarray(Pydata, dtype=np.uint8).reshape(shape_array)
+        pyary = np.frombuffer(Pydata.tobytes(), dtype=np.uint8).reshape(shape_array)    
     else:
-        pyary = np.frombuffer(
-            Pydata.tobytes(), dtype=np.uint16).reshape(shape_array)
+        pyary = np.frombuffer(Pydata.tobytes(), dtype=np.uint16).reshape(shape_array)
     return pyary
 
 
@@ -81,6 +88,8 @@ cdef extern from "include/pico_zense_server_impl.hpp" namespace "zense":
         Mat getIRImage()
         Mat getDepthImage()
         vector[Mat] getWDRDepthImage()
+        int getDepthRange()
+        vector[int] getDepthRangeWDR()
 
 
 cdef class PicoZenseGRPCServerImpl:
@@ -104,10 +113,10 @@ cdef class PicoZenseGRPCServerImpl:
         cdef Mat depthImg
 
         # ToDo: avoid infinite loop
-        # ToDo: null data avoidance        
+        # ToDo: null data avoidance
         status = self.thisptr.update()
         if status:
-         return False
+            return False
 
         if self.thisptr.is_rgb():
             if self.thisptr.is_ir():
@@ -142,7 +151,7 @@ cdef class PicoZenseGRPCServerImpl:
                 depthImg = self.thisptr.getDepthImage()
                 self.depthImgRange1_npy = Mat2np(depthImg, is_UC16=True)
 
-        #ToDo: check status carefully
+        # ToDo: check status carefully
         return status
 
     @property
@@ -176,3 +185,10 @@ cdef class PicoZenseGRPCServerImpl:
     def depth_image_range2(self):
         assert self.depthImgRange2_npy is not None
         return self.depthImgRange2_npy
+
+    @property
+    def get_depth_range(self):
+        if self.thisptr.is_wdr():
+            return self.thisptr.getDepthRangeWDR()
+        else:
+            return self.thisptr.getDepthRange()

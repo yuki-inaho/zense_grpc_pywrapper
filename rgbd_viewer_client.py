@@ -9,14 +9,15 @@ import zense_pb2_grpc
 import numpy as np
 import cv2
 import cvui
+from utils import bytes_to_ndarray
 import pdb
 
 WINDOW_NAME = "gRPC Test"
 IMAGE_WIDTH = 640
 IMAGE_HEIGHT = 480
 
-options = [('grpc.max_send_message_length', 10 * 1024 * 1024),
-           ('grpc.max_receive_message_length', 10 * 1024 * 1024)
+options = [('grpc.max_send_message_length', 30 * 1024 * 1024),
+           ('grpc.max_receive_message_length', 30 * 1024 * 1024)
            ]  # Message size is up to 10MB
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -50,7 +51,7 @@ class RGBDImageManager:
         c = response.image_rgb.channel
         if w == 0:
             return False
-        img_np = np.frombuffer(response.image_rgb.data, np.uint8)
+        img_np = bytes_to_ndarray(response.image_rgb.data)
         self.img_rgb = img_np.reshape(h, w, c)
         return True
 
@@ -59,16 +60,16 @@ class RGBDImageManager:
         h = response.image_depth.height
         if w == 0:
             return False
-        img_np = np.frombuffer(response.image_depth.data, np.uint16)
+        img_np = bytes_to_ndarray(response.image_depth.data)
         self.img_depth = img_np.reshape(h, w)
         return True
 
     def update(self):
         with grpc.insecure_channel('localhost:50051', options=options) as self.channel:
             stub = zense_pb2_grpc.ZenseServiceStub(self.channel)
-            response = stub.SendRGBDImage.future(zense_pb2.ImageRequest())
-            status = self.update_rgb(response.result())
-            status &= self.update_depth(response.result())
+            response = stub.SendRGBDImage(zense_pb2.ImageRequest())
+            status = self.update_rgb(response)
+            status &= self.update_depth(response)
         return status
 
     @property
@@ -115,7 +116,6 @@ while ((key & 0xFF != ord('q')) or (key & 0xFF != 27)):
     if status:
         rgb_img = zense_mng.rgb_image
         depth_img_colorized = zense_mng.depth_image_colorized
-
 
         rgb_img_resized = cv2.resize(rgb_img, (IMAGE_WIDTH, IMAGE_HEIGHT))
         depth_img_resized = cv2.resize(depth_img_colorized,
