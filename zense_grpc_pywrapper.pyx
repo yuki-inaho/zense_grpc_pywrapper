@@ -12,6 +12,10 @@ import base64
 import numpy as np
 cimport numpy as np
 
+import os
+
+include_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "include")
+
 ctypedef enum DepthRange:
     Near,
     Mid,
@@ -74,7 +78,7 @@ cdef object Mat2np(Mat m, bool is_UC16=False):
     return pyary
 
 
-cdef extern from "include/pico_zense_server_impl.hpp" namespace "zense":
+cdef extern from "../include/pico_zense_server_impl.hpp" namespace "zense":
     cdef cppclass PicoZenseServerImpl:
         PicoZenseServerImpl() except +
         void setup(string cfgParamPath, string camKey, int32_t device_index_)
