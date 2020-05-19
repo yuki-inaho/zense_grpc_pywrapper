@@ -222,11 +222,10 @@ cdef class PicoZenseGRPCServerImpl:
     def set_depth_range(self, given_range):
         return self.thisptr.setDepthRange(given_range)
 
-    '''
     @property
     def get_depth_range(self):
         if self.thisptr.is_wdr():
             return self.thisptr.getDepthRangeWDR()
         else:
             return self.thisptr.getDepthRange()
-    '''
+
