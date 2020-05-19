@@ -29,7 +29,7 @@ CAM_KEY = "Camera0".encode('utf-8')
 zense = PicoZenseGRPCServerImpl(CFG_PARAM_PATH, CAM_KEY, 0)
 
 
-class ZenseServiceServicer(zense_pb2_grpc.ZenseServiceServicer):
+class ZenseServiceServicerRGBDIR(zense_pb2_grpc.ZenseServiceServicer):
     def __init__(self):
         global zense
         self.is_rgb = zense.is_rgb
@@ -43,9 +43,7 @@ class ZenseServiceServicer(zense_pb2_grpc.ZenseServiceServicer):
         if not self.is_rgb:
             print("Current Configuration is not RGB enabled")
             return zense_pb2.ImageRGBDReply()
-        print("test")
         while not zense.update():
-            print("pass")
             pass
 
         self.rgb_image = zense.rgb_image
@@ -122,7 +120,7 @@ class ZenseServiceServicer(zense_pb2_grpc.ZenseServiceServicer):
     def serve(self):
         server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
         zense_pb2_grpc.add_ZenseServiceServicer_to_server(
-            ZenseServiceServicer(), server)
+            ZenseServiceServicerRGBDIR(), server)
         server.add_insecure_port('localhost:50051')
         server.start()
 
@@ -135,7 +133,7 @@ class ZenseServiceServicer(zense_pb2_grpc.ZenseServiceServicer):
 
 
 def main():
-    servicer = ZenseServiceServicer()
+    servicer = ZenseServiceServicerRGBDIR()
     servicer.serve()
 
 

@@ -1,6 +1,5 @@
 #! /usr/bin/python
-#  capture and visualize RGB-D images using zense (range1 = {>0, e.g. 0}, range2 = -1, rgb_image = 1)
-
+#  capture and visualize WDR-Depth images using zense (range1 = {>0, e.g. 0}, range2 = {>0, e.g. 0}, rgb_image != 1)
 import os
 import sys
 import toml
@@ -13,9 +12,7 @@ WORKING_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(WORKING_DIR, '../../scripts'))
 import zense_pb2
 import zense_pb2_grpc
-
 from utils.convert_pb_ndarray import bytes_to_ndarray
-
 
 WINDOW_NAME = "gRPC Test"
 IMAGE_WIDTH = 640
@@ -28,81 +25,63 @@ options = [('grpc.max_send_message_length', 10 * 1024 * 1024),
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-def is_rgbd_enabled():
+def is_wdr_enabled():
     cfg_path = os.path.join(
         SCRIPT_DIR, "{}/../../cfg/camera.toml".format(WORKING_DIR)
     )
     toml_dict = toml.load(open(cfg_path))
     isWDR = int(toml_dict["Camera0"]["range1"]) >= 0 and \
         int(toml_dict["Camera0"]["range2"]) >= 0
-    isRGB = int(toml_dict["Camera0"]["rgb_image"]) >= 0
+    isRGB = int(toml_dict["Camera0"]["rgb_image"]) == 1
     do_exit = False
-    if isWDR:
-        print("Current camera setting is WDR mode. This app can be executed under WDR disabled setting")
+    if not isWDR:
+        print("Current camera setting is WDR disabled mode. This app can be executed under WDR enabled setting")
         do_exit = True
-    if not isRGB:
-        print("Current camera setting is RGB disabled mode. This app can be executed under RGB enabled setting")
+    if isRGB:
+        print("Current camera setting is RGB enabled mode. This app can be executed under RGB disabled setting")
         do_exit = True
     if do_exit:
         assert False
 
 
-class RGBDImageManager:
+class WDRImageManager:
     def __init__(self, options):
         self.rgb_img = None
         self.depth_img = None
 
-    def update_rgb(self, response):
-        w = response.image_rgb.width
-        h = response.image_rgb.height
-        c = response.image_rgb.channel
+    def update_depth_range1(self, response):
+        w = response.image_depth_range1.width
+        h = response.image_depth_range1.height
         if w == 0:
             return False
-        self.img_rgb = bytes_to_ndarray(response.image_rgb.data)
+        self.img_depth_range1 = bytes_to_ndarray(
+            response.image_depth_range1.data)
         return True
 
-    def update_ir(self, response):
-        w = response.image_ir.width
-        h = response.image_ir.height
+    def update_depth_range2(self, response):
+        w = response.image_depth_range2.width
+        h = response.image_depth_range2.height
         if w == 0:
             return False
-        self.img_ir = bytes_to_ndarray(response.image_ir.data)
-        return True
-
-    def update_depth(self, response):
-        w = response.image_depth.width
-        h = response.image_depth.height
-        if w == 0:
-            return False
-        self.img_depth = bytes_to_ndarray(response.image_depth.data)
+        self.img_depth_range2 = bytes_to_ndarray(
+            response.image_depth_range2.data)
         return True
 
     def update(self):
         with grpc.insecure_channel('localhost:50051', options=options) as self.channel:
             stub = zense_pb2_grpc.ZenseServiceStub(self.channel)
-            response = stub.SendRGBDIRImage(zense_pb2.ImageRequest())
-            status = self.update_rgb(response)
-            status &= self.update_ir(response)
-            status &= self.update_depth(response)
+            response = stub.SendWDRDepthImage(zense_pb2.ImageRequest())
+            status = self.update_depth_range1(response)
+            status &= self.update_depth_range2(response)
         return status
 
-    @property
-    def rgb_image(self):
-        return self.img_rgb
-
-    @property
-    def depth_image(self):
-        return self.img_depth
-
-    @property
-    def depth_image_colorized(self):
+    def depth_image_colorized(self, depth_img):
         depth_img_colorized = np.zeros(
-            [self.img_depth.shape[0], self.img_depth.shape[1],
-             3]).astype(np.uint8)
+            [depth_img.shape[0], depth_img.shape[1], 3]).astype(np.uint8)
         depth_img_colorized[:, :, 1] = 255
         depth_img_colorized[:, :, 2] = 255
 
-        _depth_img_zense_hue = self.img_depth.copy().astype(np.float32)
+        _depth_img_zense_hue = depth_img.copy().astype(np.float32)
         _depth_img_zense_hue[np.where(_depth_img_zense_hue > 2000)] = 0
         zero_idx = np.where((_depth_img_zense_hue > 2000)
                             | (_depth_img_zense_hue == 0))
@@ -112,31 +91,48 @@ class RGBDImageManager:
         depth_img_colorized = cv2.cvtColor(depth_img_colorized,
                                            cv2.COLOR_HSV2RGB)
         depth_img_colorized[zero_idx[0], zero_idx[1], :] = 0
-
         return depth_img_colorized
+
+    @property
+    def depth_image_range1(self):
+        return self.img_depth_range1
+
+    @property
+    def depth_image_range2(self):
+        return self.img_depth_range2
+
+    @property
+    def depth_image_range1_colorized(self):
+        return self.depth_image_colorized(self.img_depth_range1)
+
+    @property
+    def depth_image_range2_colorized(self):
+        return self.depth_image_colorized(self.img_depth_range2)
 
 
 #
 # main rootine
 #
-
-is_rgbd_enabled()
-zense_mng = RGBDImageManager(options)
-
+is_wdr_enabled()
+zense_mng = WDRImageManager(options)
 cvui.init(WINDOW_NAME)
+
 key = cv2.waitKey(10)
 while ((key & 0xFF != ord('q')) or (key & 0xFF != 27)):
     status = zense_mng.update()
     if status:
-        rgb_img = zense_mng.rgb_image
-        depth_img_colorized = zense_mng.depth_image_colorized
+        depth_img_r1_colorized = zense_mng.depth_image_range1_colorized
+        depth_img_r2_colorized = zense_mng.depth_image_range2_colorized
 
-        rgb_img_resized = cv2.resize(rgb_img, (IMAGE_WIDTH, IMAGE_HEIGHT))
-        depth_img_resized = cv2.resize(depth_img_colorized,
-                                       (IMAGE_WIDTH, IMAGE_HEIGHT))
+        depth_img_r1_resized = cv2.resize(depth_img_r1_colorized,
+                                          (IMAGE_WIDTH, IMAGE_HEIGHT))
+        depth_img_r2_resized = cv2.resize(depth_img_r2_colorized,
+                                          (IMAGE_WIDTH, IMAGE_HEIGHT))
         frame = np.zeros((IMAGE_HEIGHT, IMAGE_WIDTH * 2, 3), np.uint8)
-        frame[0:IMAGE_HEIGHT, 0:IMAGE_WIDTH, :] = rgb_img_resized
-        frame[0:IMAGE_HEIGHT, IMAGE_WIDTH:IMAGE_WIDTH * 2, :] = depth_img_colorized
+        frame[0:IMAGE_HEIGHT, 0:IMAGE_WIDTH, :] = depth_img_r1_resized
+        frame[0:IMAGE_HEIGHT,
+              IMAGE_WIDTH:IMAGE_WIDTH * 2, :] = depth_img_r2_resized
+
         cvui.update()
         cv2.imshow(WINDOW_NAME, frame)
         key = cv2.waitKey(20)

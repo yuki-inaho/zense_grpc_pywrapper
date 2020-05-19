@@ -13,7 +13,9 @@ message Image {
 
 service ZenseService{
   rpc SendRGBDImage (ImageRequest) returns (ImageRGBDReply) {}
-  rpc SendRGBDIRImage (ImageRequest) returns (ImageRGBDIRReply) {}      
+  rpc SendRGBDIRImage (ImageRequest) returns (ImageRGBDIRReply) {}  
+  rpc SendDepthIRImage (ImageRequest) returns (ImageDepthIRReply) {}
+  rpc SendWDRDepthImage (ImageRequest) returns (ImageWDRDepthReply) {}
 }
 
 message ImageRequest{
@@ -24,8 +26,18 @@ message ImageRGBDReply{
   Image image_depth = 2;
 }
 
+message ImageDepthIRReply{
+  Image image_ir = 1;
+  Image image_depth = 2;
+}
+
 message ImageRGBDIRReply{
   Image image_rgb = 1;
   Image image_ir = 2;
   Image image_depth = 3;
+}
+
+message ImageWDRDepthReply{
+  Image image_depth_range1 = 1;
+  Image image_depth_range2 = 2;
 }

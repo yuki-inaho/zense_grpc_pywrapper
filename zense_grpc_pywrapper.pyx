@@ -121,7 +121,7 @@ cdef class PicoZenseGRPCServerImpl:
         # ToDo: null data avoidance
         status = self.thisptr.update()
         if not status:
-            print("Zense Update process didn't finish correctory")
+            "Zense Update process didn't finish correctory"
             return False
 
         if self.thisptr.is_rgb():
@@ -181,6 +181,16 @@ cdef class PicoZenseGRPCServerImpl:
     def ir_image(self):
         assert self.irImg_npy is not None
         return self.irImg_npy
+
+    @property
+    def depth_image_range1(self):
+        assert self.depthImgRange1_npy is not None
+        return self.depthImgRange1_npy
+
+    @property
+    def depth_image_range2(self):
+        assert self.depthImgRange2_npy is not None
+        return self.depthImgRange2_npy
 
     @property
     def depth_image_range1(self):

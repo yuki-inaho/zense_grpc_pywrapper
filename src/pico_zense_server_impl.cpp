@@ -86,10 +86,6 @@ void PicoZenseServerImpl::setup(std::string cfgParamPath, std::string camKey,
     std::exit(EXIT_FAILURE);
   }
 
-  // initialize flag for WDR update monitoring
-  flag_wdr_range_updated_[depth_range1] = false;
-  flag_wdr_range_updated_[depth_range2] = false;
-
   std::string ns = "/" + camera_name;
   std::cout << "Camera setup is finished!" << std::endl;
 }
@@ -172,12 +168,16 @@ bool PicoZenseServerImpl::_update<ZenseMode::WDR>() {
 
   // if only double range depth image are updated, return true
   bool is_success_wdr;
-  is_success_wdr = flag_wdr_range_updated_[depth_range1] &&
-                   flag_wdr_range_updated_[depth_range2];
+  is_success_wdr = flag_wdr_range_updated_[range1] &&
+                   flag_wdr_range_updated_[range2];
   if (is_success_wdr) {
     // if double depth info is correctly updated, reflesh
-    flag_wdr_range_updated_[depth_range1] = false;
-    flag_wdr_range_updated_[depth_range2] = false;
+    flag_wdr_range_updated_[range1] = false;
+    flag_wdr_range_updated_[range2] = false;
+  }
+
+  if(is_success_wdr && !is_success){
+    throw "Undefined situation";
   }
 
   return is_success_wdr;
