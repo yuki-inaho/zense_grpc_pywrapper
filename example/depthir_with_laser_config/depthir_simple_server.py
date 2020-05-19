@@ -43,8 +43,8 @@ class ZenseServiceServicerRGBDIR(zense_pb2_grpc.ZenseServiceServicer):
         while not zense.update():
             pass
 
-        self.rgb_image = zense.rgb_image
-        self.depth_image = zense.depth_image_range1
+        self.rgb_image = zense.rgb_image.copy()
+        self.depth_image = zense.depth_image_range1.copy()
         self.depth_range = zense.depth_range1
 
         timestamp = self.get_timestamp_microseconds()

@@ -10,7 +10,7 @@ RUN sed -i -r 's|(archive\|security)\.ubuntu\.com/|ftp.jaist.ac.jp/pub/Linux/|' 
     python-dev python-pip python-numpy python3 python3-pip python3-dev python3-distutils \
     ffmpeg libavcodec-dev libavformat-dev \
     libjpeg-dev libdc1394-22-dev libv4l-dev \
-    python-opencv libopencv-dev python-pycurl \
+    python3-tk tk-dev python-opencv libopencv-dev python-pycurl \
     libpng-dev libswscale-dev libtbb2 libtbb-dev libtiff-dev \ 
     libatlas-base-dev gfortran webp qt5-default libvtk6-dev zlib1g-dev \
     libhdf5-100 libhdf5-cpp-100 hdf5-tools hdf5-helpers libhdf5-dev libhdf5-doc \
@@ -47,50 +47,7 @@ RUN rm -rf /app/opencv-${OPENCV_VERSION}
 RUN python -m pip install grpcio && \
     python -m pip install grpcio-tools
 
-# install protobuf first, then grpc
 WORKDIR /app
-ENV GRPC_RELEASE_TAG v1.28.1
-RUN git clone -b ${GRPC_RELEASE_TAG} https://github.com/grpc/grpc && \
-        cd grpc && git submodule update --init
-
-# Install abseil
-RUN mkdir -p grpc/third_party/abseil-cpp/build && \
-    cd grpc/third_party/abseil-cpp/build && \
-    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE .. && \
-    make -j4 install
-
-# Install cares
-RUN mkdir -p grpc/third_party/cares/cares/build && \
-    cd grpc/third_party/cares/cares/build && \
-    cmake -DCMAKE_BUILD_TYPE=Release .. && \
-    make -j4 install
-
-# Install zlib
-RUN mkdir -p grpc/third_party/zlib/build && \
-    cd grpc/third_party/zlib/build && \
-    cmake -DCMAKE_BUILD_TYPE=Release .. && \
-    make -j4 install
-
-# Install protobuf
-RUN echo "--- installing protobuf ---" && \
-    cd /app/grpc/third_party/protobuf && \
-    cmake ./cmake -DCMAKE_BUILD_TYPE=Release -Dprotobuf_BUILD_TESTS=OFF && \
-    make -j4 && make install && make clean && ldconfig
-
-
-RUN echo "--- installing grpc ---" && \
-    mkdir -p /app/grpc/cmake/build && \
-    cd /app/grpc/cmake/build && \
-    cmake ../.. -DCMAKE_BUILD_TYPE=Release \
-                -DCMAKE_INSTALL_PREFIX=/usr/local/grpc \
-                -DgRPC_INSTALL=ON \
-                -DgRPC_BUILD_TESTS=OFF \
-                -DgRPC_ABSL_PROVIDER=package \
-                -DgRPC_CARES_PROVIDER=package \
-                -DgRPC_PROTOBUF_PROVIDER=package \
-                -DgRPC_SSL_PROVIDER=package \
-                -DgRPC_ZLIB_PROVIDER=package && \
-    make -j4 && make install && make clean && ldconfig
 
 RUN echo "--- installing zense sdk ---"
 COPY . /app
@@ -99,8 +56,6 @@ RUN ./install_zense_sdk.sh
 
 ENV PKG_CONFIG_PATH /usr/local/grpc/lib/pkgconfig:$PKG_CONFIG_PATH
 ENV PATH /usr/local/grpc/bin:$PATH
-
-RUN apt-get install -y python3-tk tk-dev
 
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8

@@ -44,8 +44,8 @@ class ZenseServiceServicerWDR(zense_pb2_grpc.ZenseServiceServicer):
         while not zense.update():
             pass
 
-        self.depth_image_range1 = zense.depth_image_range1
-        self.depth_image_range2 = zense.depth_image_range2
+        self.depth_image_range1 = zense.depth_image_range1.copy()
+        self.depth_image_range2 = zense.depth_image_range2.copy()
         wdr_depth_range = zense.get_depth_range
         self.depth_range1 = wdr_depth_range[0]
         self.depth_range2 = wdr_depth_range[1]
