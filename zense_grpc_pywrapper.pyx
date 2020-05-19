@@ -1,8 +1,9 @@
 # distutils: language = c++
 # distutils: sources = src/pico_zense_server_impl.cpp
 
+import os
 from libc.string cimport memcpy
-from libc.stdint cimport int32_t
+from libc.stdint cimport int32_t, uint32_t
 from libcpp.vector cimport vector
 from libcpp.string cimport string
 from libcpp cimport bool
@@ -12,9 +13,9 @@ import base64
 import numpy as np
 cimport numpy as np
 
-import os
 
-include_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "include")
+include_dir_path = os.path.join(os.path.dirname(
+    os.path.abspath(__file__)), "..", "include")
 
 ctypedef enum DepthRange:
     Near,
@@ -72,9 +73,11 @@ cdef object Mat2np(Mat m, bool is_UC16=False):
         shape_array = (m.rows, m.cols)
 
     if not is_UC16:
-        pyary = np.frombuffer(Pydata.tobytes(), dtype=np.uint8).reshape(shape_array)    
+        pyary = np.frombuffer(
+            Pydata.tobytes(), dtype=np.uint8).reshape(shape_array)
     else:
-        pyary = np.frombuffer(Pydata.tobytes(), dtype=np.uint16).reshape(shape_array)
+        pyary = np.frombuffer(
+            Pydata.tobytes(), dtype=np.uint16).reshape(shape_array)
     return pyary
 
 
@@ -94,6 +97,9 @@ cdef extern from "../include/pico_zense_server_impl.hpp" namespace "zense":
         vector[Mat] getWDRDepthImage()
         int getDepthRange()
         vector[int] getDepthRangeWDR()
+        bool getPulseCount(uint32_t & pulseCount)
+        bool setPulseCount(uint32_t pulseCount)
+        bool setDepthRange(string given_range)
 
 
 cdef class PicoZenseGRPCServerImpl:
@@ -193,18 +199,34 @@ cdef class PicoZenseGRPCServerImpl:
         return self.depthImgRange2_npy
 
     @property
-    def depth_image_range1(self):
-        assert self.depthImgRange1_npy is not None
-        return self.depthImgRange1_npy
+    def depth_range1(self):
+        return self.thisptr.getDepthRange()
 
     @property
-    def depth_image_range2(self):
-        assert self.depthImgRange2_npy is not None
-        return self.depthImgRange2_npy
+    def depth_range2(self):
+        return self.thisptr.getDepthRangeWDR()[1]
 
+    cpdef get_pulse_count(self):
+        cdef uint32_t _pulse_count
+        status = self.thisptr.getPulseCount(_pulse_count)
+        if status:
+            return _pulse_count
+        else:
+            raise ValueError('Getting pulse count value is failed')
+
+    def set_pulse_count(self, __pulse_count):
+        status = self.thisptr.setPulseCount(__pulse_count)
+        if not status:
+            raise ValueError('Setting pulse count value is failed')
+
+    def set_depth_range(self, given_range):
+        return self.thisptr.setDepthRange(given_range)
+
+    '''
     @property
     def get_depth_range(self):
         if self.thisptr.is_wdr():
             return self.thisptr.getDepthRangeWDR()
         else:
             return self.thisptr.getDepthRange()
+    '''

@@ -161,22 +161,22 @@ bool PicoZenseServerImpl::_update<ZenseMode::WDR>() {
 
   if (_depth_image.cols == 0) {
     is_success = false;
-  }else{
+  } else {
     flag_wdr_range_updated_[_depth_range] = true;
   }
   skip_counter_[_depth_range] = 0;
 
   // if only double range depth image are updated, return true
   bool is_success_wdr;
-  is_success_wdr = flag_wdr_range_updated_[range1] &&
-                   flag_wdr_range_updated_[range2];
+  is_success_wdr =
+      flag_wdr_range_updated_[range1] && flag_wdr_range_updated_[range2];
   if (is_success_wdr) {
     // if double depth info is correctly updated, reflesh
     flag_wdr_range_updated_[range1] = false;
     flag_wdr_range_updated_[range2] = false;
   }
 
-  if(is_success_wdr && !is_success){
+  if (is_success_wdr && !is_success) {
     throw "Undefined situation";
   }
 
@@ -204,6 +204,17 @@ bool PicoZenseServerImpl::update() {
   }
 
   return status;
+}
+
+bool PicoZenseServerImpl::setDepthRange(std::string given_range) {
+  if (!isWDR) {
+    bool status = manager_.setDepthRange(device_index_, given_range);
+    range1 = manager_.getDepthRange(device_index_);
+    range2 = range1;
+  } else {
+    std::cout << "Currently depth range change function supports not WDR mode"
+              << std::endl;
+  }
 }
 
 }  // namespace zense

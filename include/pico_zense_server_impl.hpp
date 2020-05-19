@@ -11,15 +11,14 @@
 #define MAX_SKIP_COUNTER 60
 #define MAX_HEARTBEAT_COUNTER 10
 
-
 namespace zense {
 
-enum DepthRange { Near, Mid, Far}; 
+enum DepthRange { Near, Mid, Far };
 
 typedef std::vector<DepthRange> WDRDepthRange;
 
-//not_WDR is just convenience notification for getDepthRange()
-enum ZenseMode { RGBD, RGBDIR, DepthIR, WDR}; 
+// not_WDR is just convenience notification for getDepthRange()
+enum ZenseMode { RGBD, RGBDIR, DepthIR, WDR };
 
 class PicoZenseServerImpl {
  public:
@@ -35,7 +34,6 @@ class PicoZenseServerImpl {
   void close();
   bool update();
 
-
   std::string getSerialNumber() { return serial_no_; };
   cv::Mat getRGBImage() { return rgb_image; };
   cv::Mat getIRImage() { return ir_image; };
@@ -44,15 +42,25 @@ class PicoZenseServerImpl {
     return std::vector<cv::Mat>{depth_image_range1, depth_image_range2};
   }
 
-  //template<typename range_output_type> 
-  //range_output_type getDepthRange(){ throw std::runtime_error("Undefined Type : getDepthRange()");}; // template specification later : DepthRange, WDRDepthRange
+  // template<typename range_output_type>
+  // range_output_type getDepthRange(){ throw std::runtime_error("Undefined Type
+  // : getDepthRange()");}; // template specification later : DepthRange,
+  // WDRDepthRange
 
   int getDepthRange();
   std::vector<int> getDepthRangeWDR();
 
-  bool is_rgb () { return isRGB; };
-  bool is_ir () { return isIR; };
-  bool is_wdr () { return isWDR; };
+  bool getPulseCount(uint32_t &pulseCount) {
+    return manager_.getPulseCount(device_index_, pulseCount);
+  }
+  bool setPulseCount(uint32_t pulseCount) {
+    return manager_.setPulseCount(device_index_, pulseCount);
+  }
+  bool setDepthRange(std::string given_range);
+
+  bool is_rgb() { return isRGB; };
+  bool is_ir() { return isIR; };
+  bool is_wdr() { return isWDR; };
 
  private:
   // PicoZense custom API
@@ -84,7 +92,9 @@ class PicoZenseServerImpl {
   // For template speciallization, defined actual process is written in .cpp
   bool monitoring_skip();
   template <ZenseMode T>
-  bool _update(){ throw std::runtime_error("Undefined Type : _update");};
+  bool _update() {
+    throw std::runtime_error("Undefined Type : _update");
+  };
 };
 
 }  // namespace zense

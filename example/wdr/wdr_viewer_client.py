@@ -26,9 +26,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def is_wdr_enabled():
-    cfg_path = os.path.join(
-        SCRIPT_DIR, "{}/../../cfg/camera.toml".format(WORKING_DIR)
-    )
+    cfg_path = "{}/../../cfg/camera.toml".format(SCRIPT_DIR)
     toml_dict = toml.load(open(cfg_path))
     isWDR = int(toml_dict["Camera0"]["range1"]) >= 0 and \
         int(toml_dict["Camera0"]["range2"]) >= 0

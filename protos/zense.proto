@@ -16,6 +16,9 @@ service ZenseService{
   rpc SendRGBDIRImage (ImageRequest) returns (ImageRGBDIRReply) {}  
   rpc SendDepthIRImage (ImageRequest) returns (ImageDepthIRReply) {}
   rpc SendWDRDepthImage (ImageRequest) returns (ImageWDRDepthReply) {}
+  rpc SetLaserIntensity (SetLaserIntensityRequest) returns (SetLaserIntensityReply) {}
+  rpc GetLaserIntensity (GetLaserIntensityRequest) returns (GetLaserIntensityReply) {}
+  rpc SetDepthRange (SetDepthRangeRequest) returns (SetDepthRangeReply) {}  
 }
 
 message ImageRequest{
@@ -40,4 +43,29 @@ message ImageRGBDIRReply{
 message ImageWDRDepthReply{
   Image image_depth_range1 = 1;
   Image image_depth_range2 = 2;
+}
+
+
+message SetLaserIntensityRequest{
+  uint32 intensity = 1;
+}
+
+message SetLaserIntensityReply{
+  bool is_success = 1;
+}
+
+message GetLaserIntensityRequest{
+}
+
+message GetLaserIntensityReply{
+  bool is_success = 1;
+  uint32 intensity = 2;
+}
+
+message SetDepthRangeRequest{
+  string given_range = 1;
+}
+
+message SetDepthRangeReply{
+  bool is_success = 1;
 }
