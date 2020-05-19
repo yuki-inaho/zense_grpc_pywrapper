@@ -115,11 +115,13 @@ cdef class PicoZenseGRPCServerImpl:
         cdef Mat rgbImg
         cdef Mat irImg
         cdef Mat depthImg
+        cdef bool status
 
         # ToDo: avoid infinite loop
         # ToDo: null data avoidance
         status = self.thisptr.update()
-        if status:
+        if not status:
+            print("Zense Update process didn't finish correctory")
             return False
 
         if self.thisptr.is_rgb():

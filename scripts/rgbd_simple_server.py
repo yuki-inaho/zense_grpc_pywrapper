@@ -6,13 +6,21 @@ import zense_pb2_grpc
 import zense_pb2 as Image
 import zense_pb2
 import grpc
+
+import os
+import sys
+
+WORKING_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.join(WORKING_DIR, '..'))
 from zense_grpc_pywrapper import PicoZenseGRPCServerImpl
+
 from utils.convert_pb_ndarray import ndarray_to_bytes
 from concurrent import futures
 
 _ONE_DAY_IN_SECONDS = 60 * 60 * 24
 
-CFG_PARAM_PATH = "./cfg/camera.toml".encode('utf-8')
+import pdb
+CFG_PARAM_PATH = "{}/../cfg/camera.toml".format(WORKING_DIR).encode('utf-8')
 CAM_KEY = "Camera0".encode('utf-8')
 
 
@@ -32,8 +40,11 @@ class ZenseServiceServicer(zense_pb2_grpc.ZenseServiceServicer):
     def SendRGBDImage(self, request, context):
         global zense
         if not self.is_rgb:
+            print("Current Configuration is not RGB enabled")
             return zense_pb2.ImageRGBDReply()
-        if not zense.update():
+        print("test")
+        while not zense.update():
+            print("pass")
             pass
 
         self.rgb_image = zense.rgb_image

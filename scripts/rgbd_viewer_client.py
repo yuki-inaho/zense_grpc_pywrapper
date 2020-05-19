@@ -9,8 +9,10 @@ import zense_pb2_grpc
 import numpy as np
 import cv2
 import cvui
-from utils.convert_pb_ndarray import bytes_to_ndarray
 import pdb
+from utils.convert_pb_ndarray import bytes_to_ndarray
+
+WORKING_DIR = os.path.dirname(os.path.abspath(__file__))
 
 WINDOW_NAME = "gRPC Test"
 IMAGE_WIDTH = 640
@@ -24,7 +26,9 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def is_rgbd_enabled():
-    cfg_path = os.path.join(SCRIPT_DIR, "./cfg/camera.toml")
+    cfg_path = os.path.join(
+        SCRIPT_DIR, "{}/../cfg/camera.toml".format(WORKING_DIR)
+    )
     toml_dict = toml.load(open(cfg_path))
     isWDR = int(toml_dict["Camera0"]["range1"]) >= 0 and \
         int(toml_dict["Camera0"]["range2"]) >= 0
