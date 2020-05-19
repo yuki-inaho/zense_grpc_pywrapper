@@ -2,14 +2,18 @@
 #  capture and visualize RGB-D images using zense (range1 = {>0, e.g. 0}, range2 = -1, rgb_image = 1)
 
 import os
+import sys
 import toml
 import grpc
-import zense_pb2
-import zense_pb2_grpc
 import numpy as np
 import cv2
 import cvui
-import pdb
+
+WORKING_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.join(WORKING_DIR, '../../scripts'))
+import zense_pb2
+import zense_pb2_grpc
+
 from utils.convert_pb_ndarray import bytes_to_ndarray
 
 WORKING_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -27,7 +31,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def is_rgbd_enabled():
     cfg_path = os.path.join(
-        SCRIPT_DIR, "{}/../cfg/camera.toml".format(WORKING_DIR)
+        SCRIPT_DIR, "{}/../../cfg/camera.toml".format(WORKING_DIR)
     )
     toml_dict = toml.load(open(cfg_path))
     isWDR = int(toml_dict["Camera0"]["range1"]) >= 0 and \
