@@ -73,19 +73,44 @@ class ZenseServiceServicer(zense_pb2_grpc.ZenseServiceServicer):
 
 
     def SendRGBDIRImage(self, request, context):
-        return zense_pb2.RGBDIRReply()
-    '''
-        if (not self.is_rgb) or (not self.is_ir):
-            return zense_pb2.RGBDIRReply()
-        if not self.zense.update():
+        global zense
+        if not self.is_rgb:
+            print("Current Configuration is not RGB enabled")
+            return zense_pb2.ImageRGBDReply(
+        while not zense.update():
             pass
+
+        self.rgb_image = zense.rgb_image
+        self.ir_image = zense.ir_image
+        self.depth_image = zense.depth_image_range1
+        self.depth_range = zense.get_depth_range
+
+        timestamp = self.get_timestamp_microseconds()        
         rgb_img_pb = zense_pb2.Image(
-            data=ndarray_to_bytes(self.zense.rgb_image))
-        ir_img_pb = zense_pb2.Image(data=ndarray_to_bytes(self.zense.ir_image))
+            height=self.rgb_image.shape[0],
+            width=self.rgb_image.shape[1],
+            timestamp=timestamp,
+            channel=3,
+            data = ndarray_to_bytes(self.rgb_image)
+        )
+
+        ir_img_pb = zense_pb2.Image(
+            height=self.ir_image.shape[0],
+            width=self.ir_image.shape[1],
+            timestamp=timestamp,
+            channel=1,
+            data = ndarray_to_bytes(self.ir_image)
+        )
+
         depth_img_pb = zense_pb2.Image(
-            data=ndarray_to_bytes(self.zense.depth_image))
-        return zense_pb2.RGBDIRReply(image_rgb=rgb_img_pb, image_ir=ir_img_pb, image_depth=depth_img_pb)
-    '''
+            height=self.depth_image.shape[0],
+            width=self.depth_image.shape[1],
+            timestamp=timestamp,
+            channel=1,
+            depth_range=self.depth_range,
+            data=ndarray_to_bytes(self.depth_image)
+        )
+        return zense_pb2.ImageRGBDIRReply(image_rgb=rgb_img_pb, image_ir=ir_img_pb, image_depth=depth_img_pb)
 
     def get_timestamp_microseconds(self):
         return int((datetime.now() - datetime.utcfromtimestamp(0)).total_seconds() * 1e6)

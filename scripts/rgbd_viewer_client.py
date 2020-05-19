@@ -55,8 +55,15 @@ class RGBDImageManager:
         c = response.image_rgb.channel
         if w == 0:
             return False
-        img_np = bytes_to_ndarray(response.image_rgb.data)
-        self.img_rgb = img_np.reshape(h, w, c)
+        self.img_rgb = bytes_to_ndarray(response.image_rgb.data)
+        return True
+
+    def update_ir(self, response):
+        w = response.image_ir.width
+        h = response.image_ir.height
+        if w == 0:
+            return False
+        self.img_ir = bytes_to_ndarray(response.image_ir.data)
         return True
 
     def update_depth(self, response):
@@ -64,15 +71,15 @@ class RGBDImageManager:
         h = response.image_depth.height
         if w == 0:
             return False
-        img_np = bytes_to_ndarray(response.image_depth.data)
-        self.img_depth = img_np.reshape(h, w)
+        self.img_depth = bytes_to_ndarray(response.image_depth.data)
         return True
 
     def update(self):
         with grpc.insecure_channel('localhost:50051', options=options) as self.channel:
             stub = zense_pb2_grpc.ZenseServiceStub(self.channel)
-            response = stub.SendRGBDImage(zense_pb2.ImageRequest())
+            response = stub.SendRGBDIRImage(zense_pb2.ImageRequest())
             status = self.update_rgb(response)
+            status &= self.update_ir(response)
             status &= self.update_depth(response)
         return status
 
