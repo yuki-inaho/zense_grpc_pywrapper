@@ -15,6 +15,10 @@ run_docker:
 	--volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
 	 zense_grpc_pywrapper
 
+.PHONY: build_inplace
+build_inplace:
+	python setup.py build_ext --inplace
+
 .PHONY: install
 install:
 	python setup.py install --user
